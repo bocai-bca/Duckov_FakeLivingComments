@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using TMPro;
+﻿using TMPro;
 using UnityEngine;
 
 namespace FakeLivingComments
@@ -10,43 +7,39 @@ namespace FakeLivingComments
 	{
 		public void Update()
 		{
-			float life_time = Time.time - spawnTime;
-
+			float lifeTime = Time.time - _spawnTime;
+			
 		}
 		public GameObject? CommentGameObject
 		{
 			get
 			{
-				return gameObject;
+				return _gameObject;
 			}
 		}
 		public string CommentText
 		{
 			get
 			{
-				if (textMeshPro != null)
-				{
-					return textMeshPro.text;
-				}
-				return string.Empty;
+				return _textMeshPro != null ? _textMeshPro.text : string.Empty;
 			}
 			set
 			{
-				if (textMeshPro != null)
+				if (_textMeshPro != null)
 				{
-					textMeshPro.text = value;
+					_textMeshPro.text = value;
 				}
 			}
 		}
-		public RealtimeComment(string comment_text = "")
+		public RealtimeComment(string commentText = "")
 		{
-			gameObject = new GameObject("LivingComment");
-			textMeshPro = gameObject.AddComponent<TextMeshProUGUI>();
-			textMeshPro.text = comment_text;
-			spawnTime = Time.time;
+			_gameObject = new GameObject("LivingComment");
+			_textMeshPro = _gameObject.AddComponent<TextMeshProUGUI>();
+			_textMeshPro.text = commentText;
+			_spawnTime = Time.time;
 		}
-		private readonly GameObject? gameObject;
-		private readonly TextMeshProUGUI? textMeshPro;
-		private readonly float spawnTime;
+		private readonly GameObject? _gameObject;
+		private readonly TextMeshProUGUI? _textMeshPro;
+		private readonly float _spawnTime;
 	}
 }

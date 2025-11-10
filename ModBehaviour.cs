@@ -1,7 +1,4 @@
-﻿using System;
-using Duckov;
-
-namespace FakeLivingComments
+﻿namespace FakeLivingComments
 {
     public class ModBehaviour : Duckov.Modding.ModBehaviour
     {
