@@ -4,8 +4,14 @@ using UnityEngine;
 
 namespace FakeLivingComments.Config
 {
+	/// <summary>
+	/// 配置持有器，也负责读写配置文件
+	/// </summary>
 	public static class ConfigHolder
 	{
+		/// <summary>
+		/// 配置文件路径
+		/// </summary>
 		public static string ConfigFilePath
 		{
 			get
@@ -15,7 +21,10 @@ namespace FakeLivingComments.Config
 			}
 		}
 		public static ConfigStruct ConfigData = MakeDefault();
-
+		/// <summary>
+		/// 从文件读取配置
+		/// </summary>
+		/// <returns>成功与否</returns>
 		public static bool ReadFromFile()
 		{
 			if (!File.Exists(ConfigFilePath))
@@ -32,7 +41,10 @@ namespace FakeLivingComments.Config
 			ConfigData = JsonUtility.FromJson<ConfigStruct>(configContent);
 			return true;
 		}
-
+		/// <summary>
+		/// 将配置保存到文件
+		/// </summary>
+		/// <returns>成功与否</returns>
 		public static bool SaveToFile()
 		{
 			try
@@ -48,14 +60,17 @@ namespace FakeLivingComments.Config
 			}
 			return true;
 		}
-		
+		/// <summary>
+		/// 创建并返回一个包含默认值的配置结构体实例
+		/// </summary>
+		/// <returns>包含默认值的配置结构体实例</returns>
 		public static ConfigStruct MakeDefault()
 		{
 			ConfigStruct result = new ConfigStruct
 			{
 				CommentStaySeconds = 10.0f,
 				CommentAlpha = 0.5f,
-				CommentFontSize = 10.0f,
+				CommentFontSize = 20,
 				CommentMaxCount = 30,
 				CommentLowestHeight = 0.3f,
 			};
