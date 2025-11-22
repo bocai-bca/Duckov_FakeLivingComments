@@ -1,6 +1,6 @@
 ﻿using FakeLivingComments.Config;
+using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace FakeLivingComments
 {
@@ -19,7 +19,7 @@ namespace FakeLivingComments
 				return;
 			}
 			float lifePercentage = Mathf.Clamp(1f - (Time.time - _spawnTime) / ConfigHolder.ConfigData.CommentStaySeconds, 0f, 1f); //生命周期百分比，刚生成时为1f，结束时为0f
-			CommentGameObject.transform.position = new Vector3(_text.preferredWidth / -2f + Mathf.Lerp(0f, Screen.width + _text.preferredWidth / 2f, lifePercentage), CommentGameObject.transform.position.y);
+			CommentGameObject.transform.position = new Vector3(_text.renderedWidth / -2f + Mathf.Lerp(0f, Screen.width + _text.renderedWidth, lifePercentage), CommentGameObject.transform.position.y);
 			if (lifePercentage <= 0f)
 			{
 				Destroy();
@@ -82,15 +82,17 @@ namespace FakeLivingComments
 			RectTransform rectTransform = CommentGameObject.AddComponent<RectTransform>();
 			rectTransform.SetParent(parent);
 			CommentGameObject.hideFlags = HideFlags.HideAndDontSave;
-			rectTransform.position = new Vector3(0f, Random.Range(configStruct.CommentLowestHeight * Screen.height, Screen.height - configStruct.CommentFontSize / 2f));
+			rectTransform.position = new Vector3(Screen.width * 2f, Random.Range(configStruct.CommentLowestHeight * Screen.height, Screen.height - configStruct.CommentFontSizeMulti / 2f));
 			_canvasRenderer = CommentGameObject.AddComponent<CanvasRenderer>();
-			_canvasRenderer.SetAlpha(configStruct.CommentAlpha);
-			_text = CommentGameObject.AddComponent<Text>();
+			_text = CommentGameObject.AddComponent<TextMeshProUGUI>();
 			_text.text = commentText;
-			_text.fontSize = configStruct.CommentFontSize;
+			_text.alpha = configStruct.CommentAlpha;
+			_text.fontSize = configStruct.CommentFontSizeMulti * Screen.height;
+			_text.outlineWidth = configStruct.CommentOutlineWidth;
+			_text.alignment = TextAlignmentOptions.Center;
 			_spawnTime = Time.time;
 		}
-		private Text? _text;
+		private TextMeshProUGUI? _text;
 		private CanvasRenderer? _canvasRenderer;
 		private float _spawnTime;
 	}

@@ -70,9 +70,10 @@ namespace FakeLivingComments.Config
 			{
 				CommentStaySeconds = 10.0f,
 				CommentAlpha = 0.5f,
-				CommentFontSize = 20,
+				CommentFontSizeMulti = 0.04f,
 				CommentMaxCount = 30,
 				CommentLowestHeight = 0.3f,
+				CommentOutlineWidth = 0.1f,
 			};
 			return result;
 		}

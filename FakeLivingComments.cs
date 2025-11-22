@@ -18,6 +18,7 @@ namespace FakeLivingComments
 		public static void Init()
 		{
 			CreateUI();
+			SendANewComment("直播弹幕模拟已加载");
 		}
 		/// <summary>
 		/// 取消加载本mod
