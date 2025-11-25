@@ -1,9 +1,9 @@
 ﻿namespace FakeLivingComments.Factory
 {
 	/// <summary>
-	/// 节点基类
+	/// 节点数据基类，所有节点数据都需继承本类
 	/// </summary>
-	public class NodeBase
+	public abstract class NodeBase
 	{
 		
 	}
