@@ -12,6 +12,17 @@ namespace FakeLivingComments.Factory
 		/// 触发器注册表，键为触发器的UID，值为触发器数据
 		/// </summary>
 		public Dictionary<string, Trigger>? triggers;
+		/// <summary>
+		/// 过滤器注册表，键为过滤器的UID，值为过滤器数据
+		/// </summary>
 		public Dictionary<string, Filter>? filters;
+		/// <summary>
+		/// 抽取器注册表，键为抽取器的UID，值为抽取器数据
+		/// </summary>
+		public Dictionary<string, Selector>? selectors;
+		/// <summary>
+		/// 生成器注册表，键为生成器的UID，值为生成器数据
+		/// </summary>
+		public Dictionary<string, Generator>? generators;
 	}
 }
