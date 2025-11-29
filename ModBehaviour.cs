@@ -1,6 +1,4 @@
-﻿using Duckov.Modding;
-
-namespace FakeLivingComments
+﻿namespace FakeLivingComments
 {
 	/// <summary>
 	/// FakeLivingComments的ModBehaviour

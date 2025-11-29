@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using SodaCraft.Localizations;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -10,8 +10,17 @@ namespace FakeLivingComments
 	/// </summary>
 	public static class FakeLivingComments
 	{
+		/// <summary>
+		/// MOD人类易读名称，通用于大多数场合
+		/// </summary>
 		public const string MOD_NAME = "FakeLivingComments";
+		/// <summary>
+		/// MOD的配置文件目录名
+		/// </summary>
 		public const string MOD_CONFIG_DIR = "BCASoft.FakeLivingComments";
+		/// <summary>
+		/// 记录当前存在的所有弹幕实例对象
+		/// </summary>
 		public static List<RealtimeComment> RealtimeComments = new List<RealtimeComment>();
 		public static RectTransform? UITransform;
 		/// <summary>
@@ -20,7 +29,7 @@ namespace FakeLivingComments
 		public static void Init()
 		{
 			CreateUI();
-			SendANewComment("直播弹幕模拟已加载");
+			SendANewComment(LocalizationManager.CurrentLanguage == SystemLanguage.Chinese ? "假弹幕模组本身已加载" : MOD_NAME + " was loaded.");
 		}
 		/// <summary>
 		/// 取消加载本mod
