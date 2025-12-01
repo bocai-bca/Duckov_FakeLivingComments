@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using FakeLivingComments.Factory;
 using UnityEngine;
 
@@ -9,6 +10,10 @@ namespace FakeLivingComments
 	/// </summary>
 	public static class FactoryManager
 	{
+		/// <summary>
+		/// 按信号名作为键记录所有订阅该信号的触发器的过滤器的UID    
+		/// </summary>
+		public static Dictionary<string, List<string>> SignalToFilters = new Dictionary<string, List<string>>();
 		/// <summary>
 		/// 数据文件路径
 		/// </summary>
@@ -44,7 +49,36 @@ namespace FakeLivingComments
 					FactoryDataLoaded.Merge(data);
 				}
 			}
+			SignalToFilters.Clear(); //清空信号to过滤器列表
+			foreach (string filtersUID in FactoryDataLoaded.filters.Keys) //按键名(过滤器UID)遍历所有过滤器
+			{
+				Filter thisFilter = FactoryDataLoaded.filters[filtersUID]; //缓存当前遍历到达的过滤器
+				foreach (string filterScribedTriggerUID in thisFilter.scribe_triggers) //遍历该过滤器订阅的所有触发器
+				{
+					Trigger thisTrigger = FactoryDataLoaded.triggers[filterScribedTriggerUID]; //缓存当前遍历当前遍历到达的过滤器到达的触发器
+					if (thisTrigger.type != TriggerType.Signal)
+					{
+						continue;
+					}
+					if (SignalToFilters.ContainsKey(filterScribedTriggerUID)) //如果信号to过滤器列表含有当前遍历到的被订阅触发器
+					{
+						SignalToFilters[filterScribedTriggerUID].Add(filtersUID); //将当前遍历到的过滤器UID添加到信号to过滤器
+					}
+					else
+					{
+						SignalToFilters.Add(filterScribedTriggerUID, new List<string> { filtersUID }); //新建值并记录当前过滤器UID
+					}
+				}
+			}
 			return true;
+		}
+		/// <summary>
+		/// 广播一个触发器信号
+		/// </summary>
+		/// <param name="signal">信号名</param>
+		public static void EmitTriggerSignal(string signal)
+		{
+			
 		}
 	}
 }

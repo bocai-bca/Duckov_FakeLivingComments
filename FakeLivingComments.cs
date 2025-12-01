@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
-using SodaCraft.Localizations;
+using FakeLivingComments.Config;
+using HarmonyLib;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
@@ -19,17 +20,52 @@ namespace FakeLivingComments
 		/// </summary>
 		public const string MOD_CONFIG_DIR = "BCASoft.FakeLivingComments";
 		/// <summary>
+		/// 本mod使用的Harmony实例
+		/// </summary>
+		public static Harmony HarmonyInstance = new Harmony(MOD_NAME);
+		/// <summary>
 		/// 记录当前存在的所有弹幕实例对象
 		/// </summary>
 		public static List<RealtimeComment> RealtimeComments = new List<RealtimeComment>();
 		public static RectTransform? UITransform;
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public static List<RealtimeCommentReserve> RealtimeCommentReserves
+		{
+			get
+			{
+				lock (realtimeCommentReserves)
+				{
+					return realtimeCommentReserves;
+				}
+			}
+			set
+			{
+				lock (realtimeCommentReserves)
+				{
+					realtimeCommentReserves = value;
+				}
+			}
+		}
+		private static List<RealtimeCommentReserve> realtimeCommentReserves = new List<RealtimeCommentReserve>();
+		
 		/// <summary>
 		/// 本mod的初始化，在加载时调用
 		/// </summary>
 		public static void Init()
 		{
+			if (ConfigHolder.ReadFromFile())
+			{
+				RealtimeComments.Capacity = ConfigHolder.ConfigData.CommentMaxCount;
+				RealtimeCommentReserves.Capacity = ConfigHolder.ConfigData.CommentMaxCount;
+				ReserveANewComment("已加载配置文件", Time.time + 2f);
+			}
+			ConfigHolder.SaveToFile();
 			CreateUI();
-			SendANewComment(LocalizationManager.CurrentLanguage == SystemLanguage.Chinese ? "假弹幕模组本身已加载" : MOD_NAME + " was loaded.");
+			SignalTriggerHandler.Load();
+			ReserveANewComment("假弹幕模组已加载完毕", Time.time + 3f);
 		}
 		/// <summary>
 		/// 取消加载本mod
@@ -37,32 +73,54 @@ namespace FakeLivingComments
 		public static void Unload()
 		{
 			DestroyUI();
+			SignalTriggerHandler.Unload();
+			HarmonyInstance.UnpatchAll(MOD_NAME);
 		}
 		public static void Update()
 		{
-			List<int> freeIndexList = new List<int>();
-			for (int i = 0; i < RealtimeComments.Count; i++)
+			// 弹幕对象更新与回收引用
+			for (int i = RealtimeComments.Count - 1; i >= 0; i--)
 			{
 				RealtimeComment thisRealtimeComment = RealtimeComments[i];
 				thisRealtimeComment.Update();
 				if (!thisRealtimeComment.IsAlive)
 				{
-					freeIndexList.Add(i);
+					RealtimeComments.RemoveAt(i);
 				}
 			}
-			for (int freeIndex = freeIndexList.Count - 1; freeIndex >= 0; freeIndex--)
+			// 新弹幕对象发送
+			for (int i = RealtimeCommentReserves.Count - 1; i >= 0; i--)
 			{
-				RealtimeComments.RemoveAt(freeIndexList[freeIndex]);
+				if (Time.time >= RealtimeCommentReserves[i].SendTime)
+				{
+					SendANewComment(RealtimeCommentReserves[i].Text);
+					RealtimeCommentReserves.RemoveAt(i);
+				}
 			}
 		}
 		/// <summary>
-		/// 发送出一条弹幕，可在调试时手动调用。可能因当前存在的弹幕数量达到上限或UI不存在而被丢弃，届时本方法会返回false
+		/// 添加一条预备弹幕，不可在调试时手动调用。可能因当前存在的预备弹幕数量达到上限而被丢弃，届时本方法会返回false
+		/// </summary>
+		/// <param name="text">要发送的文本</param>
+		/// <param name="sendTime">预定弹幕发送的绝对时间(不是相对倒计时)，绝对时间使用UnityEngine.Time.time比较</param>
+		/// <returns>弹幕是否成功添加到预备</returns>
+		public static bool ReserveANewComment(string text, float sendTime)
+		{
+			if (RealtimeCommentReserves.Count >= ConfigHolder.ConfigData.ReserveMaxCount)
+			{
+				return false;
+			}
+			RealtimeCommentReserves.Add(new RealtimeCommentReserve(text, sendTime));
+			return true;
+		}
+		/// <summary>
+		/// 立即发送出一条弹幕，可在调试时手动调用。可能因当前存在的弹幕数量达到上限或UI不存在而被丢弃，届时本方法会返回false
 		/// </summary>
 		/// <param name="text">要发送的文本</param>
 		/// <returns>弹幕是否成功发送</returns>
 		public static bool SendANewComment(string text)
 		{
-			if (RealtimeComments.Count >= Config.ConfigHolder.ConfigData.CommentMaxCount || UITransform == null)
+			if (RealtimeComments.Count >= ConfigHolder.ConfigData.CommentMaxCount || UITransform == null)
 			{
 				return false;
 			}

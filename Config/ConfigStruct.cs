@@ -22,6 +22,10 @@
         /// </summary>
         public int CommentMaxCount;
         /// <summary>
+        /// 预备弹幕的最大条数
+        /// </summary>
+        public int ReserveMaxCount;
+        /// <summary>
         /// 弹幕出现在屏幕上的最低位置乘数，基于窗口尺寸的高度，填写0-1。此值越大，弹幕最低位置越接近屏幕顶部，反之若为0，则允许弹幕出现在画面的任意高度
         /// </summary>
         public float CommentLowestHeight;

@@ -15,6 +15,7 @@
   <Reference Include="$(DuckovPath)\Duckov_Data\Managed\FMODUnity.dll" />
   <Reference Include="$(DuckovPath)\Duckov_Data\Managed\Newtonsoft.Json.dll" />
   <Reference Include="$(DuckovPath)\Duckov_Data\Managed\SodaLocalization.dll" />
+  <Reference Include="D:\Program Files\Steam\steamapps\workshop\content\3167020\3589088839\0Harmony.dll" />
   </ItemGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="copy &quot;D:\Projects\VisualStudio\Duckov_FakeLivingComments\bin\Release\netstandard2.1\FakeLivingComments.dll&quot; &quot;D:\Program Files\Steam\steamapps\common\Escape from Duckov\Duckov_Data\Mods\FakeLivingComments\FakeLivingComments.dll&quot;&#xA;copy &quot;D:\Projects\VisualStudio\Duckov_FakeLivingComments\bin\Release\netstandard2.1\FakeLivingComments.pdb&quot; &quot;D:\Program Files\Steam\steamapps\common\Escape from Duckov\Duckov_Data\Mods\FakeLivingComments\FakeLivingComments.pdb&quot;" />

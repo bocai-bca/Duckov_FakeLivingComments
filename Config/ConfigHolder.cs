@@ -72,6 +72,7 @@ namespace FakeLivingComments.Config
 				CommentAlpha = 0.5f,
 				CommentFontSizeMulti = 0.04f,
 				CommentMaxCount = 30,
+				ReserveMaxCount = 15,
 				CommentLowestHeight = 0.3f,
 				CommentOutlineWidth = 0.1f,
 			};

@@ -8,10 +8,10 @@
 		/// <summary>
 		/// 该过滤器订阅的触发器
 		/// </summary>
-		public string[]? scribe_triggers;
+		public string[] scribe_triggers = {};
 		/// <summary>
 		/// 该过滤器的命令列表
 		/// </summary>
-		public string[]? commands;
+		public string[] commands = {};
 	}
 }
