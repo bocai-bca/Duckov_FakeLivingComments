@@ -1,8 +1,4 @@
-﻿using System;
-using System.Reflection;
-using HarmonyLib;
-
-namespace FakeLivingComments.Factory
+﻿namespace FakeLivingComments.Factory
 {
 	/// <summary>
 	/// 触发器数据，类型中的结构也代表着flc_data.json中触发器的结构
@@ -34,13 +30,6 @@ namespace FakeLivingComments.Factory
 			this.target = target;
 		}
 		/// <summary>
-		/// 
-		/// </summary>
-		public void OnTriggered()
-		{
-			
-		}
-		/// <summary>
 		/// 使触发器攀附到目标
 		/// </summary>
 		/// <param name="errorReason">错误理由</param>
@@ -60,6 +49,7 @@ namespace FakeLivingComments.Factory
 			errorReason = "";
 			switch (type)
 			{
+				/*
 				case TriggerType.Harmony:
 					Type? targetClass;
 					try
@@ -93,6 +83,7 @@ namespace FakeLivingComments.Factory
 					}
 					FakeLivingComments.HarmonyInstance.Patch(targetMethod, null, new HarmonyMethod(typeof(Trigger), "OnTriggered", Type.EmptyTypes));
 					return true;
+				*/
 				default:
 					errorReason = $"未定义的触发器类型{type}";
 					return false;

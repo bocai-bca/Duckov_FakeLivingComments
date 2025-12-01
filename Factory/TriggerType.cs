@@ -3,6 +3,6 @@
 	public enum TriggerType
 	{
 		Signal = 0,
-		Harmony = 1,
+		//Harmony = 1,
 	}
 }

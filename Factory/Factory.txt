@@ -18,7 +18,7 @@ flc_data.json格式：
 {} 根标签
 	{} triggers 触发器数据表
 		~{} <触发器UID> 一个触发器数据
-			string|int type 该触发器的类型，可以为Action(0)或Harmony(1)
+			string|int type 该触发器的类型，可以为Action(0) -或Harmony(1)- (先不支持Harmony了)
 			string class_name 该触发器的订阅目标类，需填写含命名空间的类型名称
 			string target 该触发器的订阅目标，目标的类型受type决定
 	{} filters 过滤器数据表

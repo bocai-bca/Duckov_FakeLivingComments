@@ -1,5 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using FakeLivingComments.Factory;
 using UnityEngine;
 
@@ -30,9 +33,17 @@ namespace FakeLivingComments
 		/// </summary>
 		public static FactoryData? FactoryDataLoaded;
 		/// <summary>
+		/// 线程安全队列，用于存储工厂管线已被触发的过滤器任务
+		/// </summary>
+		private static ConcurrentQueue<Filter> factoryFilterTaskQueue = new ConcurrentQueue<Filter>();
+		/// <summary>
+		/// 工厂管线工作线程
+		/// </summary>
+		public static Thread? FactoryPipelineThread;
+		/// <summary>
 		/// 加载并合并数据至内存
 		/// </summary>
-		/// <returns></returns>
+		/// <returns>成功与否</returns>
 		public static bool LoadData()
 		{
 			FactoryDataLoaded = new FactoryData();
@@ -77,6 +88,85 @@ namespace FakeLivingComments
 		/// </summary>
 		/// <param name="signal">信号名</param>
 		public static void EmitTriggerSignal(string signal)
+		{
+			try
+			{
+				if (FactoryDataLoaded == null || FactoryPipelineThread == null)
+				{
+					return;
+				}
+				if (SignalToFilters.TryGetValue(signal, out List<string>? filterUIDs))
+				{
+					foreach (string filterUID in filterUIDs)
+					{
+						if (FactoryDataLoaded.filters.TryGetValue(filterUID, out Filter? filter))
+						{
+							factoryFilterTaskQueue.Enqueue(filter);
+						}
+					}
+					if (!FactoryPipelineThread.IsAlive)
+					{
+						FactoryPipelineStart();
+					}
+				}
+			}
+			catch (Exception e)
+			{
+				Debug.LogException(e);
+			}
+		}
+		/// <summary>
+		/// 用于多线程启动的工厂管线
+		/// </summary>
+		internal static void FactoryPipelineStart()
+		{
+			if (FactoryPipelineThread != null && FactoryPipelineThread.IsAlive)
+			{
+				Debug.LogError("工厂线程已在运作，无法重复启动工厂管线");
+				return;
+			}
+			FactoryPipelineThread = new Thread(FactoryPipelineLoop)
+			{
+				IsBackground = true,
+				Name = "FakeLivingComments.FactoryPipelineThread"
+			};
+			FactoryPipelineThread.Start();
+		}
+		/// <summary>
+		/// 工厂管线工作流程
+		/// </summary>
+		private static void FactoryPipelineLoop()
+		{
+			while (!factoryFilterTaskQueue.IsEmpty)
+			{
+				Thread.Sleep(100);
+				
+			}
+		}
+		/// <summary>
+		/// 中止工厂管线工作线程，调用时会一并清空过滤器队列，除非发生故障
+		/// </summary>
+		internal static void FactoryPipelineStop()
+		{
+			if (FactoryPipelineThread != null && FactoryPipelineThread.IsAlive)
+			{
+				if (!FactoryPipelineThread.Join(10000))
+				{
+					Debug.LogError("工厂管线工作线程合并失败或超时");
+				}
+				else
+				{
+					FactoryPipelineThread = null;
+					factoryFilterTaskQueue.Clear();
+				}
+			}
+		}
+		/// <summary>
+		/// 工厂管线方法-执行过滤器
+		/// </summary>
+		/// <param name="filter">要被执行的过滤器</param>
+		/// <returns>该过滤器的通过与否</returns>
+		private static bool FactoryPipeline_ExecuteFilter(Filter filter)
 		{
 			
 		}
