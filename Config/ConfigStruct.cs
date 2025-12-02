@@ -33,5 +33,9 @@
         /// 弹幕字体边框宽度乘数，用于TMP_Text.outlineWidth，是字体大小的乘数
         /// </summary>
         public float CommentOutlineWidth;
+        /// <summary>
+        /// 过滤器命令执行的最大允许命令数
+        /// </summary>
+        public int FilterExecutionTTL;
     }
 }

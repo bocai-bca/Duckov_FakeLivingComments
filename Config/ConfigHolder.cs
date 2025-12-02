@@ -75,6 +75,7 @@ namespace FakeLivingComments.Config
 				ReserveMaxCount = 15,
 				CommentLowestHeight = 0.3f,
 				CommentOutlineWidth = 0.1f,
+				FilterExecutionTTL = 120,
 			};
 			return result;
 		}
