@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace FakeLivingComments.Factory
 {
@@ -14,10 +15,28 @@ namespace FakeLivingComments.Factory
 		/// <summary>
 		/// 数据源，为Normal类型时代表原初文本，为External时代表要调用的方法
 		/// </summary>
-		public string? source;
+		public string source;
 		/// <summary>
 		/// 修饰器，仅限Normal类型可使用
 		/// </summary>
-		public Dictionary<string, GeneratorModifier>? modifiers;
+		public GeneratorModifier? modifier;
+		/// <summary>
+		/// 延迟器，影响文本的出现延迟时间，x=随机最小值，y=随机最大值
+		/// </summary>
+		public float[]? delay;
+		/// <summary>
+		/// 默认值构造函数
+		/// </summary>
+		/// <param name="type">生成器的类型</param>
+		/// <param name="source">生成器的数据源</param>
+		/// <param name="modifier">生成器的修饰器表</param>
+		/// <param name="delay">生成器的延迟器</param>
+		public Generator(GeneratorType type = GeneratorType.Normal, string source = "", GeneratorModifier? modifier = null, float[]? delay = null)
+		{
+			this.type = type;
+			this.source = source;
+			this.modifier = modifier;
+			this.delay = delay;
+		}
 	}
 }

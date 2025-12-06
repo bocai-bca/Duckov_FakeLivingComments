@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
+using System.Collections.Generic;
 using FakeLivingComments.Config;
 using HarmonyLib;
 using UnityEngine;
@@ -28,29 +29,10 @@ namespace FakeLivingComments
 		/// </summary>
 		public static List<RealtimeComment> RealtimeComments = new List<RealtimeComment>();
 		public static RectTransform? UITransform;
-
 		/// <summary>
-		/// 
+		/// 预备弹幕队列
 		/// </summary>
-		public static List<RealtimeCommentReserve> RealtimeCommentReserves
-		{
-			get
-			{
-				lock (realtimeCommentReserves)
-				{
-					return realtimeCommentReserves;
-				}
-			}
-			set
-			{
-				lock (realtimeCommentReserves)
-				{
-					realtimeCommentReserves = value;
-				}
-			}
-		}
-		private static List<RealtimeCommentReserve> realtimeCommentReserves = new List<RealtimeCommentReserve>();
-		
+		public static ConcurrentQueue<RealtimeCommentReserve> RealtimeCommentReserves = new ConcurrentQueue<RealtimeCommentReserve>();
 		/// <summary>
 		/// 本mod的初始化，在加载时调用
 		/// </summary>
@@ -59,7 +41,6 @@ namespace FakeLivingComments
 			if (ConfigHolder.ReadFromFile())
 			{
 				RealtimeComments.Capacity = ConfigHolder.ConfigData.CommentMaxCount;
-				RealtimeCommentReserves.Capacity = ConfigHolder.ConfigData.CommentMaxCount;
 				ReserveANewComment("已加载配置文件", Time.time + 2f);
 			}
 			ConfigHolder.SaveToFile();
@@ -89,12 +70,18 @@ namespace FakeLivingComments
 				}
 			}
 			// 新弹幕对象发送
-			for (int i = RealtimeCommentReserves.Count - 1; i >= 0; i--)
+			for (int tryCounter = RealtimeCommentReserves.Count; tryCounter > 0; tryCounter--)
 			{
-				if (Time.time >= RealtimeCommentReserves[i].SendTime)
+				if (RealtimeCommentReserves.TryDequeue(out RealtimeCommentReserve commentReserve))
 				{
-					SendANewComment(RealtimeCommentReserves[i].Text);
-					RealtimeCommentReserves.RemoveAt(i);
+					if (Time.time >= commentReserve.SendTime)
+					{
+						SendANewComment(commentReserve.Text);
+					}
+					else
+					{
+						RealtimeCommentReserves.Enqueue(commentReserve);
+					}
 				}
 			}
 		}
@@ -110,7 +97,7 @@ namespace FakeLivingComments
 			{
 				return false;
 			}
-			RealtimeCommentReserves.Add(new RealtimeCommentReserve(text, sendTime));
+			RealtimeCommentReserves.Enqueue(new RealtimeCommentReserve(text, sendTime));
 			return true;
 		}
 		/// <summary>

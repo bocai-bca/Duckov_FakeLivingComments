@@ -18,8 +18,8 @@ flc_data.json格式：
 {} 根标签
 	{} triggers 触发器数据表
 		~{} <触发器UID> 一个触发器数据
-			string|int type 该触发器的类型，可以为Action(0) -或Harmony(1)- (先不支持Harmony了)
-			string class_name 该触发器的订阅目标类，需填写含命名空间的类型名称
+			string|int type 该触发器的类型，可以为Signal(0) -或Harmony(1)- (先不支持Harmony了)
+			string class_name 该触发器的订阅目标类，需填写含命名空间的类型名称(若类型为Signal则此项可留空)
 			string target 该触发器的订阅目标，目标的类型受type决定
 	{} filters 过滤器数据表
 		~{} <过滤器UID> 一个过滤器数据
@@ -41,9 +41,24 @@ flc_data.json格式：
 			string source 数据源，为Normal类型时代表原初文本，为External时代表要调用的方法
 			{} modifiers 修饰器，仅限Normal类型可使用
 				*[] repeat 重复修饰器，重复文本一定次数
-					<...需参考重复修饰器参数用法...>
-				*[] misspell 错别字修饰器
-					<...需参考错别字修饰器参数用法...>
+					int 随机最小重复次数(含)
+					int 随机最大重复次数(含)
+				*[] misspells 错别字修饰器
+					~{} 一个错别字修饰器对象
+						string from 将要替换的原始文本
+						string to 替换为的目标文本
+						float min_change_rate 替换率最小随机值，填写0-1浮点数，不能大于max_change_rate
+						float max_change_rate 替换率最大随机值，填写0-1浮点数，不能小于min_change_rate
+			float[] delay 延迟器，影响文本的出现延迟时间
+				float 随机最小起始秒数
+				float 随机最大起始秒数
+
+触发器信号触发时机表：
+	OnPlayerDeath 玩家死亡时
+	OnPlayerKillEnemy 玩家击杀敌人时
+		OnPlayerKillEnemy_enemy=<被杀对象nameKey>
+	OnPlayerShoot 玩家射击时
+	
 
 过滤器命令：
 ret [if|else]
@@ -57,4 +72,4 @@ if <cmd> [<...>]
 	if cmd rdb <chance>
 		chance填写一个表示百分比的数字，范围为0-1，指代有多少概率通过
 	if cmd call <method>
-		method填写一个使用
+		method填写一个格式类似为"Namespace.Class.Method"的无参public方法，方法必须返回bool，且需能够在工厂线程上运行，若方法耗时可能导致阻塞工厂线程

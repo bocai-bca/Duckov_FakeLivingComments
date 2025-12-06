@@ -25,9 +25,9 @@ namespace FakeLivingComments.Factory
 		/// </summary>
 		public Dictionary<string, Generator> generators = new Dictionary<string, Generator>();
 		/// <summary>
-		/// 
+		/// 将另一个工厂数据实例的内容与本实例合并
 		/// </summary>
-		/// <returns></returns>
+		/// <returns>成功与否</returns>
 		public bool Merge(FactoryData data)
 		{
 			foreach (string triggerKey in data.triggers.Keys)
@@ -59,6 +59,22 @@ namespace FakeLivingComments.Factory
 				}
 			}
 			return true;
+		}
+		/// <summary>
+		/// 从Json文本解析为工厂数据
+		/// </summary>
+		/// <param name="jsonString">Json文本</param>
+		/// <param name="data">工厂数据</param>
+		/// <returns>解析成功与否</returns>
+		public static bool FromJson(string jsonString, out FactoryData? data)
+		{
+			if (jsonString == "")
+			{
+				data = null;
+				return false;
+			}
+			data = new FactoryData();
+			return false;
 		}
 	}
 }

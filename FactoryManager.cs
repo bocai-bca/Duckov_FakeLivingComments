@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Reflection;
 using System.Threading;
 using FakeLivingComments.Config;
 using FakeLivingComments.Factory;
@@ -16,7 +17,7 @@ namespace FakeLivingComments
 	public static class FactoryManager
 	{
 		/// <summary>
-		/// 按信号名作为键记录所有订阅该信号的触发器的过滤器的UID    
+		/// 按信号名作为键记录所有订阅绑定该信号的触发器的过滤器的UID    
 		/// </summary>
 		public static Dictionary<string, List<string>> SignalToFilters = new Dictionary<string, List<string>>();
 		/// <summary>
@@ -53,8 +54,9 @@ namespace FakeLivingComments
 			{
 				if (Path.GetExtension(current_path) != ".json") continue;
 				string fileContent = File.ReadAllText(current_path);
-				FactoryData data = JsonUtility.FromJson<FactoryData>(fileContent);
-				if (data != null) FactoryDataLoaded.Merge(data);
+				//FactoryData data = JsonUtility.FromJson<FactoryData>(fileContent);
+				if ()
+				//if (data != null) FactoryDataLoaded.Merge(data);
 			}
 			SignalToFilters.Clear(); //清空信号to过滤器列表
 			foreach (string filtersUID in FactoryDataLoaded.filters.Keys) //按键名(过滤器UID)遍历所有过滤器
@@ -64,8 +66,8 @@ namespace FakeLivingComments
 				{
 					Trigger thisTrigger = FactoryDataLoaded.triggers[filterScribedTriggerUID]; //缓存当前遍历当前遍历到达的过滤器到达的触发器
 					if (thisTrigger.type != TriggerType.Signal) continue;
-					if (SignalToFilters.ContainsKey(filterScribedTriggerUID)) SignalToFilters[filterScribedTriggerUID].Add(filtersUID); //如果信号to过滤器列表含有当前遍历到的被订阅触发器，将当前遍历到的过滤器UID添加到信号to过滤器
-					else SignalToFilters.Add(filterScribedTriggerUID, new List<string> { filtersUID }); //否则新建值并记录当前过滤器UID
+					if (SignalToFilters.ContainsKey(thisTrigger.target)) SignalToFilters[thisTrigger.target].Add(filtersUID); //如果信号to过滤器列表含有当前遍历到的被订阅触发器，将当前遍历到的过滤器UID添加到信号to过滤器
+					else SignalToFilters.Add(thisTrigger.target, new List<string> { filtersUID }); //否则新建值并记录当前过滤器UID
 				}
 			}
 			return true;
@@ -241,7 +243,41 @@ namespace FakeLivingComments
 							case "call":
 								if (currentCommand.Length == 4)
 								{
-									
+									int lastIndexOf = currentCommand[3].LastIndexOf('.');
+									if (lastIndexOf <= 0)
+									{
+										Debug.LogError("过滤器命令出错-要调用的外部方法给定格式不正确，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+										return;
+									}
+									string className = currentCommand[3].Substring(0, lastIndexOf);
+									string methodName = currentCommand[3].Substring(lastIndexOf + 1);
+									try
+									{
+										Type? targetType = Type.GetType(className);
+										if (targetType == null)
+										{
+											Debug.LogError("过滤器命令出错-找不到类" + className + "，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+											return;
+										}
+										MethodInfo? targetMethod = targetType.GetMethod(methodName, BindingFlags.Static | BindingFlags.Public, null, CallingConventions.Standard, Type.EmptyTypes, null);
+										if (targetMethod == null)
+										{
+											Debug.LogError("过滤器命令出错-找不到方法" + methodName + "，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+											return;
+										}
+										object callResult = targetMethod.Invoke(null, null);
+										if (!(callResult is bool))
+										{
+											Debug.LogError("过滤器命令出错-调用的外部方法返回值不可用，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+											return;
+										}
+										lastIfResult = (bool)callResult;
+									}
+									catch (Exception e)
+									{
+										Debug.LogError("过滤器命令出错-反射获取外部方法时发生异常，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer] + "\n" + e.Message);
+										return;
+									}
 								}
 								else if (currentCommand.Length > 4)
 								{
@@ -259,6 +295,25 @@ namespace FakeLivingComments
 								return;
 						}
 						break;
+					case "slt":
+						if (currentCommand.Length < 2)
+						{
+							Debug.LogError("过滤器命令出错-段落缺失，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+							return;
+						}
+						if (FactoryDataLoaded == null)
+						{
+							Debug.LogError("工厂管线数据为null");
+							return;
+						}
+						string selectorUID = currentCommand[1];
+						if (!FactoryDataLoaded.selectors.ContainsKey(selectorUID))
+						{
+							Debug.LogError("过滤器命令出错-不存在UID为" + selectorUID + "的抽取器，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+							return;
+						}
+						FactoryPipeline_ExecuteSelector(FactoryDataLoaded.selectors[selectorUID]);
+						break;
 					case "":
 						break;
 					default:
@@ -268,6 +323,132 @@ namespace FakeLivingComments
 				commandPointer++;
 			}
 			ExecutionReturn: ;
+		}
+		/// <summary>
+		/// 工厂管线方法-执行抽取器
+		/// </summary>
+		/// <param name="selector">要被执行的抽取器</param>
+		private static void FactoryPipeline_ExecuteSelector(Selector selector)
+		{
+			if (selector.pool == null)
+			{
+				Debug.LogError("抽取池为null");
+				return;
+			}
+			if (FactoryDataLoaded == null)
+			{
+				Debug.LogError("工厂管线数据为null");
+				return;
+			}
+			for (int rollCounter = selector.rolls; rollCounter > 0; rollCounter--)
+			{
+				Dictionary<Vector2Int, SelectorObject> rollPool = new Dictionary<Vector2Int, SelectorObject>(selector.pool.Length);
+				int currentWeightValue = 0;
+				foreach (SelectorObject selectorObject in selector.pool)
+				{
+					if (selectorObject.weight <= 0)
+					{
+						continue;
+					}
+					rollPool.Add(new Vector2Int(currentWeightValue + 1, selectorObject.weight + currentWeightValue), selectorObject);
+					currentWeightValue += selectorObject.weight;
+					/*
+					 * 假设对象的权重分别为[5, 10, 20]
+					 * 首个对象的Vec2i是(0+1=1, 0+5=5)[跨度5]，添加完此对象后currentWeight为0+5=5
+					 * 第二个对象的Vec2i是(5+1=6, 5+10=15)[跨度10]，添加完此对象后currentWeight为5+10=15
+					 * 第三个对象的Vec2i是(15+1=16, 15+20=35)[跨度20]，添加完此对象后currentWeight为15+20=35
+					 * 最后随机数取(Include:1,Exclude:35+1)
+					 */
+				}
+				int random = Random.Range(1, currentWeightValue + 1);
+				foreach (Vector2Int vector2Int in rollPool.Keys)
+				{
+					if (vector2Int.x <= random && random <= vector2Int.y)
+					{
+						// 选中抽取项
+						SelectorObject selectedObject = rollPool[vector2Int];
+						if (selectedObject.generatorUIDs == null)
+						{
+							break;
+						}
+						foreach (string generatorUID in selectedObject.generatorUIDs)
+						{
+							if (!FactoryDataLoaded.generators.ContainsKey(generatorUID))
+							{
+								Debug.LogError("找不到UID为" + generatorUID + "的生成器");
+								continue;
+							}
+							FactoryPipeline_ExecuteGenerator(FactoryDataLoaded.generators[generatorUID]);
+						}
+						break;
+					}
+				}
+			}
+		}
+		/// <summary>
+		/// 工厂管线方法-执行生成器
+		/// </summary>
+		/// <param name="generator">工厂管线方法-执行生成器</param>
+		private static void FactoryPipeline_ExecuteGenerator(Generator generator)
+		{
+			string commentText = generator.source;
+			float delaySeconds = 0f;
+			switch (generator.type)
+			{
+				case GeneratorType.Normal:
+					if (generator.modifier == null)
+					{
+						goto Submit;
+					}
+					commentText = generator.modifier.ExecuteModifier(commentText);
+					break;
+				case GeneratorType.External:
+					int lastIndexOf = generator.source.LastIndexOf('.');
+					if (lastIndexOf <= 0)
+					{
+						Debug.LogError("生成器出错，给定的外部调用目标格式不正确");
+						return;
+					}
+					string className = generator.source.Substring(0, lastIndexOf);
+					string methodName = generator.source.Substring(lastIndexOf + 1);
+					try
+					{
+						Type? targetType = Type.GetType(className);
+						if (targetType == null)
+						{
+							Debug.LogError("生成器出错，找不到外部类:" + className);
+							return;
+						}
+						MethodInfo? targetMethod = targetType.GetMethod(methodName, BindingFlags.Static | BindingFlags.Public, null, CallingConventions.Standard, Type.EmptyTypes, null);
+						if (targetMethod == null)
+						{
+							Debug.LogError("生成器出错，找不到外部方法:" + methodName);
+							return;
+						}
+						object callResult = targetMethod.Invoke(null, null);
+						if (!(callResult is string))
+						{
+							Debug.LogError("生成器出错，外部调用目标返回值不可用");
+							return;
+						}
+						commentText = (string)callResult;
+					}
+					catch (Exception e)
+					{
+						Debug.LogError("生成器出错，反射获取外部调用目标时发生异常\n" + e.Message);
+						return;
+					}
+					break;
+				default:
+					Debug.LogError("生成器执行出错，不存在的生成器类型:" + generator.type);
+					return;
+			}
+			Submit:
+			if (generator.delay != null)
+			{
+				delaySeconds = Random.Range(generator.delay[0], generator.delay[1]);
+			}
+			FakeLivingComments.ReserveANewComment(commentText, Time.time + delaySeconds);
 		}
 	}
 }
