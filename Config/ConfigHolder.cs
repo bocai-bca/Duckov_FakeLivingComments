@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace FakeLivingComments.Config
@@ -38,7 +39,7 @@ namespace FakeLivingComments.Config
 				Logger.Log(Logger.LogLevel.Error, "配置文件内容未空或读取错误");
 				return false;
 			}
-			ConfigData = JsonUtility.FromJson<ConfigStruct>(configContent);
+			ConfigData = JsonConvert.DeserializeObject<ConfigStruct>(configContent);
 			return true;
 		}
 		/// <summary>
@@ -49,7 +50,7 @@ namespace FakeLivingComments.Config
 		{
 			try
 			{
-				string json = JsonUtility.ToJson(ConfigData, true);
+				string json = JsonConvert.SerializeObject(ConfigData, Formatting.Indented);
 				Directory.CreateDirectory(Path.GetDirectoryName(ConfigFilePath)!);
 				File.WriteAllText(ConfigFilePath, json);
 			}

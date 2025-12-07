@@ -8,15 +8,15 @@
 		/// <summary>
 		/// 该触发器的类型
 		/// </summary>
-		public TriggerType type;
+		public TriggerType Type;
 		/// <summary>
 		/// 该触发器的订阅目标类，需填写含命名空间的类型名称
 		/// </summary>
-		public string class_name;
+		public string ClassName;
 		/// <summary>
 		/// 该触发器的订阅目标，目标的类型受type决定
 		/// </summary>
-		public string target;
+		public string Target;
 		/// <summary>
 		/// 默认值构造函数
 		/// </summary>
@@ -25,9 +25,9 @@
 		/// <param name="target">该触发器的订阅目标，目标的类型受type决定</param>
 		public Trigger(TriggerType type = TriggerType.Signal, string className = "", string target = "")
 		{
-			class_name = className;
-			this.type = type;
-			this.target = target;
+			ClassName = className;
+			Type = type;
+			Target = target;
 		}
 		/// <summary>
 		/// 使触发器攀附到目标
@@ -36,18 +36,18 @@
 		/// <returns>错误与否</returns>
 		public bool Patch(out string errorReason)
 		{
-			if (type == TriggerType.Signal)
+			if (Type == TriggerType.Signal)
 			{
 				errorReason = "";
 				return true;
 			}
-			if (string.IsNullOrWhiteSpace(class_name) || string.IsNullOrWhiteSpace(target))
+			if (string.IsNullOrWhiteSpace(ClassName) || string.IsNullOrWhiteSpace(Target))
 			{
 				errorReason = "订阅目标类或目标为空";
 				return false;
 			}
 			errorReason = "";
-			switch (type)
+			switch (Type)
 			{
 				/*
 				case TriggerType.Harmony:
@@ -85,7 +85,7 @@
 					return true;
 				*/
 				default:
-					errorReason = $"未定义的触发器类型{type}";
+					errorReason = $"未定义的触发器类型{Type}";
 					return false;
 			}
 		}

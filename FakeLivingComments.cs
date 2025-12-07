@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using FakeLivingComments.Config;
 using HarmonyLib;
 using UnityEngine;
@@ -41,12 +42,29 @@ namespace FakeLivingComments
 			if (ConfigHolder.ReadFromFile())
 			{
 				RealtimeComments.Capacity = ConfigHolder.ConfigData.CommentMaxCount;
-				ReserveANewComment("已加载配置文件", Time.time + 2f);
+				SendANewComment("已加载配置文件");
 			}
-			ConfigHolder.SaveToFile();
+			else if (!File.Exists(ConfigHolder.ConfigFilePath))
+			{
+				RealtimeComments.Capacity = ConfigHolder.ConfigData.CommentMaxCount;
+				SendANewComment("未能加载配置文件，配置文件不存在");
+			}
+			else
+			{
+				RealtimeComments.Capacity = ConfigHolder.ConfigData.CommentMaxCount;
+				SendANewComment("加载配置文件时发生问题，配置文件内容未空或读取错误");
+			}
+			if (ConfigHolder.SaveToFile())
+			{
+				ReserveANewComment("已写入配置文件", Time.time + 1f);
+			}
+			else
+			{
+				ReserveANewComment("写入配置文件时发生问题", Time.time + 1f);
+			}
 			CreateUI();
 			SignalTriggerHandler.Load();
-			ReserveANewComment("假弹幕模组已加载完毕", Time.time + 3f);
+			ReserveANewComment("加载流程完毕", Time.time + 4f);
 		}
 		/// <summary>
 		/// 取消加载本mod

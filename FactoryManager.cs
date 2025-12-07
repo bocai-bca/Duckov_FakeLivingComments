@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading;
 using FakeLivingComments.Config;
 using FakeLivingComments.Factory;
+using Newtonsoft.Json;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -54,20 +55,23 @@ namespace FakeLivingComments
 			{
 				if (Path.GetExtension(current_path) != ".json") continue;
 				string fileContent = File.ReadAllText(current_path);
-				//FactoryData data = JsonUtility.FromJson<FactoryData>(fileContent);
-				if ()
+				//FactoryData? data = JsonConvert.DeserializeObject<FactoryData>(fileContent);
 				//if (data != null) FactoryDataLoaded.Merge(data);
+				if (FactoryData.FromJson(fileContent, out FactoryData data))
+				{
+					FactoryDataLoaded.Merge(data);
+				}
 			}
 			SignalToFilters.Clear(); //清空信号to过滤器列表
-			foreach (string filtersUID in FactoryDataLoaded.filters.Keys) //按键名(过滤器UID)遍历所有过滤器
+			foreach (string filtersUID in FactoryDataLoaded.Filters.Keys) //按键名(过滤器UID)遍历所有过滤器
 			{
-				Filter thisFilter = FactoryDataLoaded.filters[filtersUID]; //缓存当前遍历到达的过滤器
-				foreach (string filterScribedTriggerUID in thisFilter.scribe_triggers) //遍历该过滤器订阅的所有触发器
+				Filter thisFilter = FactoryDataLoaded.Filters[filtersUID]; //缓存当前遍历到达的过滤器
+				foreach (string filterScribedTriggerUID in thisFilter.ScribeTriggers) //遍历该过滤器订阅的所有触发器
 				{
-					Trigger thisTrigger = FactoryDataLoaded.triggers[filterScribedTriggerUID]; //缓存当前遍历当前遍历到达的过滤器到达的触发器
-					if (thisTrigger.type != TriggerType.Signal) continue;
-					if (SignalToFilters.ContainsKey(thisTrigger.target)) SignalToFilters[thisTrigger.target].Add(filtersUID); //如果信号to过滤器列表含有当前遍历到的被订阅触发器，将当前遍历到的过滤器UID添加到信号to过滤器
-					else SignalToFilters.Add(thisTrigger.target, new List<string> { filtersUID }); //否则新建值并记录当前过滤器UID
+					Trigger thisTrigger = FactoryDataLoaded.Triggers[filterScribedTriggerUID]; //缓存当前遍历当前遍历到达的过滤器到达的触发器
+					if (thisTrigger.Type != TriggerType.Signal) continue;
+					if (SignalToFilters.ContainsKey(thisTrigger.Target)) SignalToFilters[thisTrigger.Target].Add(filtersUID); //如果信号to过滤器列表含有当前遍历到的被订阅触发器，将当前遍历到的过滤器UID添加到信号to过滤器
+					else SignalToFilters.Add(thisTrigger.Target, new List<string> { filtersUID }); //否则新建值并记录当前过滤器UID
 				}
 			}
 			return true;
@@ -85,7 +89,7 @@ namespace FakeLivingComments
 				{
 					foreach (string filterUID in filterUIDs)
 					{
-						if (FactoryDataLoaded.filters.TryGetValue(filterUID, out Filter? filter)) factoryFilterTaskQueue.Enqueue(filter);
+						if (FactoryDataLoaded.Filters.TryGetValue(filterUID, out Filter? filter)) factoryFilterTaskQueue.Enqueue(filter);
 					}
 					if (!FactoryPipelineThread.IsAlive) FactoryPipelineStart();
 				}
@@ -152,8 +156,8 @@ namespace FakeLivingComments
 			bool lastIfResult = false; //记录上一次if命令结果
 			for (int executionTTL = ConfigHolder.ConfigData.FilterExecutionTTL; executionTTL > 0; executionTTL--) //启动循环
 			{
-				if (commandPointer >= filter.commands.Length) break; //如果当前命令指针超出命令条数，就结束过滤器执行
-				string[] currentCommand = filter.commands[commandPointer].Split(' '); //取得当前命令并分段
+				if (commandPointer >= filter.Commands.Length) break; //如果当前命令指针超出命令条数，就结束过滤器执行
+				string[] currentCommand = filter.Commands[commandPointer].Split(' '); //取得当前命令并分段
 				switch (currentCommand[0]) //匹配检查主命令
 				{
 					case "ret":
@@ -168,7 +172,7 @@ namespace FakeLivingComments
 									if (!lastIfResult) goto ExecutionReturn;
 									break;
 								default:
-									Debug.LogError("过滤器命令出错-未知的子命令，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+									Debug.LogError("过滤器命令出错-未知的子命令，行号=" + commandPointer + "，内容=" + filter.Commands[commandPointer]);
 									return;
 							}
 						}
@@ -177,7 +181,7 @@ namespace FakeLivingComments
 					case "goto":
 						if (currentCommand.Length < 2)
 						{
-							Debug.LogError("过滤器命令出错-段落缺失，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+							Debug.LogError("过滤器命令出错-段落缺失，行号=" + commandPointer + "，内容=" + filter.Commands[commandPointer]);
 							return;
 						}
 						if (int.TryParse(currentCommand[1], out int gotoLine))
@@ -193,23 +197,23 @@ namespace FakeLivingComments
 										if (!lastIfResult) commandPointer = gotoLine;
 										break;
 									default:
-										Debug.LogError("过滤器命令出错-未知的子命令，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+										Debug.LogError("过滤器命令出错-未知的子命令，行号=" + commandPointer + "，内容=" + filter.Commands[commandPointer]);
 										return;
 								}
 							}
 							else if (currentCommand.Length > 3)
 							{
-								Debug.LogError("过滤器命令出错-未知的额外段落，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+								Debug.LogError("过滤器命令出错-未知的额外段落，行号=" + commandPointer + "，内容=" + filter.Commands[commandPointer]);
 								return;
 							}
 							break;
 						}
-						Debug.LogError("过滤器命令出错-数字参数解析失败，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+						Debug.LogError("过滤器命令出错-数字参数解析失败，行号=" + commandPointer + "，内容=" + filter.Commands[commandPointer]);
 						return;
 					case "if":
 						if (currentCommand.Length <= 2)
 						{
-							Debug.LogError("过滤器命令出错-段落缺失，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+							Debug.LogError("过滤器命令出错-段落缺失，行号=" + commandPointer + "，内容=" + filter.Commands[commandPointer]);
 							return;
 						}
 						switch (currentCommand[2])
@@ -225,18 +229,18 @@ namespace FakeLivingComments
 									}
 									else
 									{
-										Debug.LogError("过滤器命令出错-数字参数解析失败，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+										Debug.LogError("过滤器命令出错-数字参数解析失败，行号=" + commandPointer + "，内容=" + filter.Commands[commandPointer]);
 										return;
 									}
 								}
 								else if (currentCommand.Length > 4)
 								{
-									Debug.LogError("过滤器命令出错-未知的额外段落，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+									Debug.LogError("过滤器命令出错-未知的额外段落，行号=" + commandPointer + "，内容=" + filter.Commands[commandPointer]);
 									return;
 								}
 								else
 								{
-									Debug.LogError("过滤器命令出错-段落缺失，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+									Debug.LogError("过滤器命令出错-段落缺失，行号=" + commandPointer + "，内容=" + filter.Commands[commandPointer]);
 									return;
 								}
 								break;
@@ -246,7 +250,7 @@ namespace FakeLivingComments
 									int lastIndexOf = currentCommand[3].LastIndexOf('.');
 									if (lastIndexOf <= 0)
 									{
-										Debug.LogError("过滤器命令出错-要调用的外部方法给定格式不正确，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+										Debug.LogError("过滤器命令出错-要调用的外部方法给定格式不正确，行号=" + commandPointer + "，内容=" + filter.Commands[commandPointer]);
 										return;
 									}
 									string className = currentCommand[3].Substring(0, lastIndexOf);
@@ -256,49 +260,49 @@ namespace FakeLivingComments
 										Type? targetType = Type.GetType(className);
 										if (targetType == null)
 										{
-											Debug.LogError("过滤器命令出错-找不到类" + className + "，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+											Debug.LogError("过滤器命令出错-找不到类" + className + "，行号=" + commandPointer + "，内容=" + filter.Commands[commandPointer]);
 											return;
 										}
 										MethodInfo? targetMethod = targetType.GetMethod(methodName, BindingFlags.Static | BindingFlags.Public, null, CallingConventions.Standard, Type.EmptyTypes, null);
 										if (targetMethod == null)
 										{
-											Debug.LogError("过滤器命令出错-找不到方法" + methodName + "，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+											Debug.LogError("过滤器命令出错-找不到方法" + methodName + "，行号=" + commandPointer + "，内容=" + filter.Commands[commandPointer]);
 											return;
 										}
 										object callResult = targetMethod.Invoke(null, null);
 										if (!(callResult is bool))
 										{
-											Debug.LogError("过滤器命令出错-调用的外部方法返回值不可用，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+											Debug.LogError("过滤器命令出错-调用的外部方法返回值不可用，行号=" + commandPointer + "，内容=" + filter.Commands[commandPointer]);
 											return;
 										}
 										lastIfResult = (bool)callResult;
 									}
 									catch (Exception e)
 									{
-										Debug.LogError("过滤器命令出错-反射获取外部方法时发生异常，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer] + "\n" + e.Message);
+										Debug.LogError("过滤器命令出错-反射获取外部方法时发生异常，行号=" + commandPointer + "，内容=" + filter.Commands[commandPointer] + "\n" + e.Message);
 										return;
 									}
 								}
 								else if (currentCommand.Length > 4)
 								{
-									Debug.LogError("过滤器命令出错-未知的额外段落，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+									Debug.LogError("过滤器命令出错-未知的额外段落，行号=" + commandPointer + "，内容=" + filter.Commands[commandPointer]);
 									return;
 								}
 								else
 								{
-									Debug.LogError("过滤器命令出错-段落缺失，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+									Debug.LogError("过滤器命令出错-段落缺失，行号=" + commandPointer + "，内容=" + filter.Commands[commandPointer]);
 									return;
 								}
 								break;
 							default:
-								Debug.LogError("过滤器命令出错-未知的子命令，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+								Debug.LogError("过滤器命令出错-未知的子命令，行号=" + commandPointer + "，内容=" + filter.Commands[commandPointer]);
 								return;
 						}
 						break;
 					case "slt":
 						if (currentCommand.Length < 2)
 						{
-							Debug.LogError("过滤器命令出错-段落缺失，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+							Debug.LogError("过滤器命令出错-段落缺失，行号=" + commandPointer + "，内容=" + filter.Commands[commandPointer]);
 							return;
 						}
 						if (FactoryDataLoaded == null)
@@ -307,17 +311,17 @@ namespace FakeLivingComments
 							return;
 						}
 						string selectorUID = currentCommand[1];
-						if (!FactoryDataLoaded.selectors.ContainsKey(selectorUID))
+						if (!FactoryDataLoaded.Selectors.ContainsKey(selectorUID))
 						{
-							Debug.LogError("过滤器命令出错-不存在UID为" + selectorUID + "的抽取器，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+							Debug.LogError("过滤器命令出错-不存在UID为" + selectorUID + "的抽取器，行号=" + commandPointer + "，内容=" + filter.Commands[commandPointer]);
 							return;
 						}
-						FactoryPipeline_ExecuteSelector(FactoryDataLoaded.selectors[selectorUID]);
+						FactoryPipeline_ExecuteSelector(FactoryDataLoaded.Selectors[selectorUID]);
 						break;
 					case "":
 						break;
 					default:
-						Debug.LogError("未知的过滤器命令，行号=" + commandPointer + "，内容=" + filter.commands[commandPointer]);
+						Debug.LogError("未知的过滤器命令，行号=" + commandPointer + "，内容=" + filter.Commands[commandPointer]);
 						return;
 				}
 				commandPointer++;
@@ -330,7 +334,7 @@ namespace FakeLivingComments
 		/// <param name="selector">要被执行的抽取器</param>
 		private static void FactoryPipeline_ExecuteSelector(Selector selector)
 		{
-			if (selector.pool == null)
+			if (selector.Pool == null)
 			{
 				Debug.LogError("抽取池为null");
 				return;
@@ -340,18 +344,18 @@ namespace FakeLivingComments
 				Debug.LogError("工厂管线数据为null");
 				return;
 			}
-			for (int rollCounter = selector.rolls; rollCounter > 0; rollCounter--)
+			for (int rollCounter = selector.Rolls; rollCounter > 0; rollCounter--)
 			{
-				Dictionary<Vector2Int, SelectorObject> rollPool = new Dictionary<Vector2Int, SelectorObject>(selector.pool.Length);
+				Dictionary<Vector2Int, SelectorObject> rollPool = new Dictionary<Vector2Int, SelectorObject>(selector.Pool.Length);
 				int currentWeightValue = 0;
-				foreach (SelectorObject selectorObject in selector.pool)
+				foreach (SelectorObject selectorObject in selector.Pool)
 				{
-					if (selectorObject.weight <= 0)
+					if (selectorObject.Weight <= 0)
 					{
 						continue;
 					}
-					rollPool.Add(new Vector2Int(currentWeightValue + 1, selectorObject.weight + currentWeightValue), selectorObject);
-					currentWeightValue += selectorObject.weight;
+					rollPool.Add(new Vector2Int(currentWeightValue + 1, selectorObject.Weight + currentWeightValue), selectorObject);
+					currentWeightValue += selectorObject.Weight;
 					/*
 					 * 假设对象的权重分别为[5, 10, 20]
 					 * 首个对象的Vec2i是(0+1=1, 0+5=5)[跨度5]，添加完此对象后currentWeight为0+5=5
@@ -367,18 +371,18 @@ namespace FakeLivingComments
 					{
 						// 选中抽取项
 						SelectorObject selectedObject = rollPool[vector2Int];
-						if (selectedObject.generatorUIDs == null)
+						if (selectedObject.GeneratorUIDs == null)
 						{
 							break;
 						}
-						foreach (string generatorUID in selectedObject.generatorUIDs)
+						foreach (string generatorUID in selectedObject.GeneratorUIDs)
 						{
-							if (!FactoryDataLoaded.generators.ContainsKey(generatorUID))
+							if (!FactoryDataLoaded.Generators.ContainsKey(generatorUID))
 							{
 								Debug.LogError("找不到UID为" + generatorUID + "的生成器");
 								continue;
 							}
-							FactoryPipeline_ExecuteGenerator(FactoryDataLoaded.generators[generatorUID]);
+							FactoryPipeline_ExecuteGenerator(FactoryDataLoaded.Generators[generatorUID]);
 						}
 						break;
 					}
@@ -391,26 +395,26 @@ namespace FakeLivingComments
 		/// <param name="generator">工厂管线方法-执行生成器</param>
 		private static void FactoryPipeline_ExecuteGenerator(Generator generator)
 		{
-			string commentText = generator.source;
+			string commentText = generator.Source;
 			float delaySeconds = 0f;
-			switch (generator.type)
+			switch (generator.Type)
 			{
 				case GeneratorType.Normal:
-					if (generator.modifier == null)
+					if (generator.Modifier == null)
 					{
 						goto Submit;
 					}
-					commentText = generator.modifier.ExecuteModifier(commentText);
+					commentText = generator.Modifier.ExecuteModifier(commentText);
 					break;
 				case GeneratorType.External:
-					int lastIndexOf = generator.source.LastIndexOf('.');
+					int lastIndexOf = generator.Source.LastIndexOf('.');
 					if (lastIndexOf <= 0)
 					{
 						Debug.LogError("生成器出错，给定的外部调用目标格式不正确");
 						return;
 					}
-					string className = generator.source.Substring(0, lastIndexOf);
-					string methodName = generator.source.Substring(lastIndexOf + 1);
+					string className = generator.Source.Substring(0, lastIndexOf);
+					string methodName = generator.Source.Substring(lastIndexOf + 1);
 					try
 					{
 						Type? targetType = Type.GetType(className);
@@ -440,13 +444,13 @@ namespace FakeLivingComments
 					}
 					break;
 				default:
-					Debug.LogError("生成器执行出错，不存在的生成器类型:" + generator.type);
+					Debug.LogError("生成器执行出错，不存在的生成器类型:" + generator.Type);
 					return;
 			}
 			Submit:
-			if (generator.delay != null)
+			if (generator.Delay != null)
 			{
-				delaySeconds = Random.Range(generator.delay[0], generator.delay[1]);
+				delaySeconds = Random.Range(generator.Delay[0], generator.Delay[1]);
 			}
 			FakeLivingComments.ReserveANewComment(commentText, Time.time + delaySeconds);
 		}
