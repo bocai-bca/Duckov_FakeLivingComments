@@ -11,11 +11,11 @@ namespace FakeLivingComments.Factory
 		/// <summary>
 		/// 重复修饰器，[0]为随机最小值(含)，[1]为随机最大值(含)
 		/// </summary>
-		public int[] repeat = {0, 0};
+		public int[] Repeat = {0, 0};
 		/// <summary>
 		/// 错别字修饰器
 		/// </summary>
-		public Modifier_Misspell[] misspells = { };
+		public Modifier_Misspell[] Misspells = { };
 		/// <summary>
 		/// 执行修饰器
 		/// </summary>
@@ -24,19 +24,19 @@ namespace FakeLivingComments.Factory
 		public string ExecuteModifier(string theText)
 		{
 			// 重复修饰器
-			for (int repeatRandomized = Random.Range(repeat[0], repeat[1] + 1); repeatRandomized > 0; repeatRandomized--)
+			for (int repeatRandomized = Random.Range(Repeat[0], Repeat[1] + 1); repeatRandomized > 0; repeatRandomized--)
 			{
 				theText += theText;
 			}
 			// 错别字修饰器
-			foreach (Modifier_Misspell misspell in misspells) // 遍历所有错别字修饰器
+			foreach (Modifier_Misspell misspell in Misspells) // 遍历所有错别字修饰器
 			{
-				string[] splitted = theText.Split(misspell.from); // 按当前错别字from分割原始文本
+				string[] splitted = theText.Split(misspell.From); // 按当前错别字from分割原始文本
 				if (splitted.Length <= 1) // 如果本轮分割没有切下任何刀，意味着当前文本中不含错别字from
 				{
 					continue; // 结束本个错别字修饰器对象的执行
 				}
-				float changeRate = Random.Range(misspell.min_change_rate, misspell.max_change_rate); // 随机一个替换率
+				float changeRate = Random.Range(misspell.MinChangeRate, misspell.MaxChangeRate); // 随机一个替换率
 				List<bool> boolMap = new List<bool>(splitted.Length - 1); // 创建一个布尔数组，代表每个分段处是否成功替换为错别字
 				for (int boolMapIndex = 0; boolMapIndex < boolMap.Capacity; boolMapIndex++) // 填充值并打乱数组
 				{
@@ -60,10 +60,10 @@ namespace FakeLivingComments.Factory
 				{
 					if (boolMap[index])
 					{
-						theText += misspell.to + splitted[index + 1]; // 拼接错别字
+						theText += misspell.To + splitted[index + 1]; // 拼接错别字
 						continue;
 					}
-					theText += misspell.from + splitted[index + 1]; // 拼接原始文本
+					theText += misspell.From + splitted[index + 1]; // 拼接原始文本
 				}
 			}
 			return theText;
@@ -77,19 +77,19 @@ namespace FakeLivingComments.Factory
 		/// <summary>
 		/// 将要替换的原始文本
 		/// </summary>
-		public string from;
+		public string From;
 		/// <summary>
 		/// 替换为的目标文本
 		/// </summary>
-		public string to;
+		public string To;
 		/// <summary>
 		/// 替换率最小随机值，填写0-1浮点数，不能大于max_change_rate
 		/// </summary>
-		public float min_change_rate;
+		public float MinChangeRate;
 		/// <summary>
 		/// 替换率最大随机值，填写0-1浮点数，不能小于min_change_rate
 		/// </summary>
-		public float max_change_rate;
+		public float MaxChangeRate;
 		/// <summary>
 		/// 默认值构造函数
 		/// </summary>
@@ -99,10 +99,10 @@ namespace FakeLivingComments.Factory
 		/// <param name="maxChangeRate">替换率最大随机值，填写0-1浮点数，不能小于min_change_rate</param>
 		public Modifier_Misspell(string from, string to, float minChangeRate, float maxChangeRate)
 		{
-			this.from = from;
-			this.to = to;
-			this.min_change_rate = minChangeRate;
-			this.max_change_rate = maxChangeRate;
+			From = from;
+			To = to;
+			MinChangeRate = minChangeRate;
+			MaxChangeRate = maxChangeRate;
 		}
 	}
 }

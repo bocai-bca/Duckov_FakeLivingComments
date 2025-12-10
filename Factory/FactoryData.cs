@@ -90,12 +90,12 @@ namespace FakeLivingComments.Factory
 				foreach (JProperty triggerProperty in triggersObject.Properties()) // 解析每个触发器
 				{
 					// 位置: {}.triggers.<triggerUID>
-					if (triggerProperty.Type != JTokenType.Object) return false; // 检查该JToken是否是Json对象
+					if (triggerProperty.Type != JTokenType.Object) return false; // 检查该JProperty是否是Json对象
 					JToken? typeToken = triggerProperty["type"];
 					JToken? classNameToken = triggerProperty["class_name"];
 					JToken? targetToken = triggerProperty["target"];
-					if (typeToken == null || classNameToken == null || targetToken == null) return false;
-					if (typeToken.Type != JTokenType.String || classNameToken.Type != JTokenType.String || targetToken.Type != JTokenType.String) return false;
+					if (typeToken == null || classNameToken == null || targetToken == null) return false; // 键值不存在检查
+					if (typeToken.Type != JTokenType.String || classNameToken.Type != JTokenType.String || targetToken.Type != JTokenType.String) return false; // 值类型错误检查
 					Trigger thisTriggerParsed = new Trigger
 					{
 						Type = Enum.Parse<TriggerType>(typeToken.Value<string>() ?? "Signal"),
@@ -107,39 +107,118 @@ namespace FakeLivingComments.Factory
 			}
 			if (rootObject.TryGetValue("filters", out JToken? filtersObjectToken)) // 确认filters键是否存在并尝试获取
 			{
+				// 位置: {}.filters
 				if (!(filtersObjectToken is JObject filtersObject)) return false; // 检查filters键值对的类型
-				foreach (string? filterUID in filtersObject.Properties()) // 解析每个过滤器
+				foreach (JProperty filterProperty in filtersObject.Properties()) // 解析每个过滤器
 				{
-					if (!(filterUID != null && filtersObject[filterUID] is JObject thisFilterObject)) return false; // 检查该JToken是否是Json对象
-					if (!(thisFilterObject.TryGetValue("scribe_triggers", out JToken? scribeTriggersToken) && thisFilterObject.TryGetValue("commands", out JToken? commandsToken))) return false;
-					if (scribeTriggersToken.Type != JTokenType.Array || commandsToken.Type != JTokenType.Array) return false;
+					// 位置: {}.filters.<filterUID>
+					if (filterProperty.Type != JTokenType.Object) return false; // 检查该JProperty是否是Json对象
+					JToken? scribeTriggersToken = filterProperty["scribe_triggers"];
+					JToken? commandsToken = filterProperty["commands"];
+					if (scribeTriggersToken == null || commandsToken == null) return false; // 键值不存在检查
+					if (scribeTriggersToken.Type != JTokenType.Array || commandsToken.Type != JTokenType.Array) return false; // 值类型错误检查
 					Filter thisFilterParsed = new Filter
 					{
 						ScribeTriggers = scribeTriggersToken.Values<string>().OfType<string>().ToArray(),
 						Commands = commandsToken.Values<string>().OfType<string>().ToArray()
 					};
-					dataParsed.Filters.TryAdd(filterUID, thisFilterParsed);
+					dataParsed.Filters.TryAdd(filterProperty.Name, thisFilterParsed);
 				}
 			}
-			if (rootObject.TryGetValue("selectors", out JToken? selectorsToken)) // 确认selectors键是否存在并尝试获取
+			if (rootObject.TryGetValue("selectors", out JToken? selectorsObjectToken)) // 确认selectors键是否存在并尝试获取
 			{
 				// 位置: {}.selectors
-				if (!(selectorsToken is JObject selectorsObject)) return false; // 检查selectors键值对的类型
-				foreach (string? selectorUID in selectorsObject.Properties()) // 解析每个抽取器，必须以Json对象的属性名
+				if (!(selectorsObjectToken is JObject selectorsObject)) return false; // 检查selectors键值对的类型
+				foreach (JProperty selectorProperty in selectorsObject.Properties()) // 解析每个抽取器
 				{
 					// 位置: {}.selectors.<selectorUID>
-					if (!(selectorUID != null && selectorsObject[selectorUID] is JObject thisSelectorObject)) return false; // 检查该JToken是否是Json对象
-					if (!(thisSelectorObject.TryGetValue("rolls", out JToken? rollsToken) && thisSelectorObject.TryGetValue("pool", out JToken? poolToken))) return false;
-					if (rollsToken.Type != JTokenType.Integer || poolToken.Type != JTokenType.Array) return false;
+					if (selectorProperty.Type != JTokenType.Object) return false; // 检查该JProperty是否是Json对象
+					JToken? rollsToken = selectorProperty["rolls"];
+					JToken? poolToken = selectorProperty["pool"];
+					if (rollsToken == null || poolToken == null) return false; // 键值不存在检查
+					if (rollsToken.Type != JTokenType.Integer || poolToken.Type != JTokenType.Array) return false; // 值类型错误检查
 					Selector thisSelectorParsed = new Selector
 					{
 						Rolls = rollsToken.Value<int>()
 					};
-					foreach (JToken poolObjectToken in poolToken.Children()) // 遍历所有抽取池对象的token
+					List<SelectorObject> selectorObjectsParsed = new List<SelectorObject>();
+					foreach (JToken poolObjectToken in poolToken.Children<JToken>())
 					{
-						if (!(poolObjectToken is JObject poolObjectObject)) return false;
-						
+						// 位置: {}.selectors.<selectorUID>.pool[n]
+						if (poolObjectToken.Type != JTokenType.Object) return false; // 检查池对象的类型
+						JToken? weightToken = poolObjectToken["weight"];
+						JToken? generatorsUidsToken = poolObjectToken["generators"];
+						if (weightToken == null || generatorsUidsToken == null) return false; // 键值不存在检查
+						if (weightToken.Type != JTokenType.Integer || generatorsUidsToken.Type != JTokenType.Array) return false; // 值类型错误检查
+						SelectorObject selectorObjectParsed = new SelectorObject
+						{
+							Weight = weightToken.Value<int>(),
+							GeneratorUIDs = generatorsUidsToken.Values<string>().OfType<string>().ToArray()
+						};
+						selectorObjectsParsed.Add(selectorObjectParsed);
 					}
+					thisSelectorParsed.Pool = selectorObjectsParsed.ToArray();
+					dataParsed.Selectors.TryAdd(selectorProperty.Name, thisSelectorParsed);
+				}
+			}
+			if (rootObject.TryGetValue("generators", out JToken? generatorsToken)) // 确认generators键是否存在并尝试获取
+			{
+				// 位置: {}.generators
+				if (!(generatorsToken is JObject generatorsObject)) return false; // 检查generators键值对的类型
+				foreach (JProperty generatorProperty in generatorsObject.Properties()) // 解析每个生成器
+				{
+					// 位置: {}.generators.<generatorUID>
+					if (generatorProperty.Type != JTokenType.Object) return false; // 检查该JProperty是否是Json对象
+					JToken? typeToken = generatorProperty["type"];
+					JToken? sourceToken = generatorProperty["source"];
+					JObject? modifiersToken = generatorProperty["modifiers"] as JObject;
+					JArray? delayToken = generatorProperty["delay"] as JArray;
+					if (typeToken == null || sourceToken == null || modifiersToken == null || delayToken == null) return false; // 键值不存在检查
+					if (typeToken.Type != JTokenType.String || sourceToken.Type != JTokenType.String) return false; // 值类型错误检查
+					Generator thisGeneratorParsed = new Generator
+					{
+						Type = Enum.Parse<GeneratorType>(typeToken.Value<string>() ?? "Normal"),
+						Source = sourceToken.Value<string>() ?? "",
+						Modifier = new GeneratorModifier(),
+						Delay = new float[2]
+					};
+					foreach (JProperty modifierProperty in modifiersToken.Properties())
+					{
+						// 位置: {}.generators.<generatorUID>.modifiers.<modifierName>
+						switch (modifierProperty.Name) // 按名称遍历所有触发器
+						{
+							case "repeat":
+								if (modifierProperty.Type != JTokenType.Array) return false; // 值类型错误检查
+								if (modifierProperty.Count != 2) return false; // 值数组元素数量检查
+								if (!(modifierProperty[0] is { Type: JTokenType.Integer } repeatMinToken)) return false; // 值数组元素类型错误检查
+								if (!(modifierProperty[1] is { Type: JTokenType.Integer } repeatMaxToken)) return false; // 值数组元素类型错误检查
+								thisGeneratorParsed.Modifier.Repeat[0] = repeatMinToken.Value<int>();
+								thisGeneratorParsed.Modifier.Repeat[1] = repeatMaxToken.Value<int>();
+								break;
+							case "misspells":
+								if (modifierProperty.Type != JTokenType.Array) return false; // 值类型错误检查
+								List<Modifier_Misspell> misspellsParsed = new List<Modifier_Misspell>();
+								foreach (JToken misspellObjectToken in modifierProperty.Children<JToken>())
+								{
+									if (misspellObjectToken.Type != JTokenType.Object) return false; // 值类型错误检查
+									JToken? fromToken = misspellObjectToken["from"];
+									JToken? toToken = misspellObjectToken["to"];
+									JToken? minChangeRateToken = misspellObjectToken["minChangeRate"];
+									JToken? maxChangeRateToken = misspellObjectToken["maxChangeRate"];
+									if (fromToken == null || toToken == null || minChangeRateToken == null || maxChangeRateToken == null) return false; // 键值不存在检查
+									if (fromToken.Type != JTokenType.String || toToken.Type != JTokenType.String || minChangeRateToken.Type != JTokenType.Float || maxChangeRateToken.Type != JTokenType.Float) return false; // 值类型错误检查
+									misspellsParsed.Add(new Modifier_Misspell(fromToken.Value<string>() ?? "", toToken.Value<string>() ?? "", minChangeRateToken.Value<float>(), maxChangeRateToken.Value<float>()));
+								}
+								thisGeneratorParsed.Modifier.Misspells = misspellsParsed.ToArray();
+								break;
+						}
+					}
+					if (delayToken.Count != 2) return false; // 值数组元素数量检查
+					if (!(delayToken[0] is { Type: JTokenType.Float } delayMinToken)) return false; // 值数组元素类型错误检查
+					if (!(delayToken[1] is { Type: JTokenType.Float } delayMaxToken)) return false; // 值数组元素类型错误检查
+					thisGeneratorParsed.Delay[0] = delayMinToken.Value<float>();
+					thisGeneratorParsed.Delay[1] = delayMaxToken.Value<float>();
+					dataParsed.Generators.TryAdd(generatorProperty.Name, thisGeneratorParsed);
 				}
 			}
 			return true;
