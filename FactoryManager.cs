@@ -6,12 +6,33 @@ using System.Reflection;
 using System.Threading;
 using FakeLivingComments.Config;
 using FakeLivingComments.Factory;
-using Newtonsoft.Json;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace FakeLivingComments
 {
+	/// <summary>
+	/// 工厂数据加载结果种类
+	/// </summary>
+	public enum LoadResult
+	{
+		/// <summary>
+		/// 全部成功
+		/// </summary>
+		SUCCESS_ALL,
+		/// <summary>
+		/// 部分成功(部分出错)
+		/// </summary>
+		SUCCESS_PARTLY,
+		/// <summary>
+		/// 全部出错
+		/// </summary>
+		FAILURE_ALL,
+		/// <summary>
+		/// 没有任何数据文件可供加载
+		/// </summary>
+		NO_DATA,
+	}
 	/// <summary>
 	/// 工厂管理器
 	/// </summary>
@@ -47,22 +68,33 @@ namespace FakeLivingComments
 		/// <summary>
 		/// 加载并合并数据至内存
 		/// </summary>
-		/// <returns>成功与否</returns>
-		public static bool LoadData()
+		/// <returns>加载结果</returns>
+		public static LoadResult LoadData()
 		{
 			FactoryDataLoaded = new FactoryData();
+			int dataFileFound = 0; // 记录文件发现数
+			int dataFileLoadedSuccessfully = 0; // 记录文件加载成功数
 			foreach (string current_path in Directory.GetFiles(DataDirPath))
 			{
 				if (Path.GetExtension(current_path) != ".json") continue;
+				dataFileFound++;
 				string fileContent = File.ReadAllText(current_path);
 				//FactoryData? data = JsonConvert.DeserializeObject<FactoryData>(fileContent);
 				//if (data != null) FactoryDataLoaded.Merge(data);
+				Debug.Log(FakeLivingComments.MOD_NAME + ": 开始加载弹幕内容数据: " + current_path);
 				if (FactoryData.FromJson(fileContent, out FactoryData data))
 				{
+					Debug.Log(FakeLivingComments.MOD_NAME + "：弹幕内容数据加载成功: " + current_path);
+					dataFileLoadedSuccessfully++;
 					FactoryDataLoaded.Merge(data);
+				}
+				else
+				{
+					Debug.LogError(FakeLivingComments.MOD_NAME + "：弹幕内容数据加载失败: " + current_path);
 				}
 			}
 			SignalToFilters.Clear(); //清空信号to过滤器列表
+			if (dataFileFound == 0) return LoadResult.NO_DATA;
 			foreach (string filtersUID in FactoryDataLoaded.Filters.Keys) //按键名(过滤器UID)遍历所有过滤器
 			{
 				Filter thisFilter = FactoryDataLoaded.Filters[filtersUID]; //缓存当前遍历到达的过滤器
@@ -74,7 +106,8 @@ namespace FakeLivingComments
 					else SignalToFilters.Add(thisTrigger.Target, new List<string> { filtersUID }); //否则新建值并记录当前过滤器UID
 				}
 			}
-			return true;
+			if (dataFileLoadedSuccessfully == 0) return LoadResult.FAILURE_ALL;
+			return dataFileFound == dataFileLoadedSuccessfully ? LoadResult.SUCCESS_ALL : LoadResult.SUCCESS_PARTLY;
 		}
 		/// <summary>
 		/// 广播一个触发器信号，允许外部调用以触发一个触发器
@@ -104,7 +137,7 @@ namespace FakeLivingComments
 		/// </summary>
 		internal static void FactoryPipelineStart()
 		{
-			if (FactoryPipelineThread != null && FactoryPipelineThread.IsAlive)
+			if (FactoryPipelineThread is { IsAlive: true })
 			{
 				Debug.LogError("工厂线程已在运作，无法重复启动工厂管线");
 				return;
@@ -133,17 +166,15 @@ namespace FakeLivingComments
 		/// </summary>
 		internal static void FactoryPipelineStop()
 		{
-			if (FactoryPipelineThread != null && FactoryPipelineThread.IsAlive)
+			if (!(FactoryPipelineThread is { IsAlive: true })) return;
+			if (!FactoryPipelineThread.Join(10000))
 			{
-				if (!FactoryPipelineThread.Join(10000))
-				{
-					Debug.LogError("工厂管线工作线程合并失败或超时");
-				}
-				else
-				{
-					FactoryPipelineThread = null;
-					factoryFilterTaskQueue.Clear();
-				}
+				Debug.LogError("工厂管线工作线程合并失败或超时");
+			}
+			else
+			{
+				FactoryPipelineThread = null;
+				factoryFilterTaskQueue.Clear();
 			}
 		}
 		/// <summary>
@@ -270,12 +301,12 @@ namespace FakeLivingComments
 											return;
 										}
 										object callResult = targetMethod.Invoke(null, null);
-										if (!(callResult is bool))
+										if (!(callResult is bool result))
 										{
 											Debug.LogError("过滤器命令出错-调用的外部方法返回值不可用，行号=" + commandPointer + "，内容=" + filter.Commands[commandPointer]);
 											return;
 										}
-										lastIfResult = (bool)callResult;
+										lastIfResult = result;
 									}
 									catch (Exception e)
 									{
@@ -430,12 +461,12 @@ namespace FakeLivingComments
 							return;
 						}
 						object callResult = targetMethod.Invoke(null, null);
-						if (!(callResult is string))
+						if (!(callResult is string callResultString))
 						{
 							Debug.LogError("生成器出错，外部调用目标返回值不可用");
 							return;
 						}
-						commentText = (string)callResult;
+						commentText = callResultString;
 					}
 					catch (Exception e)
 					{

@@ -54,17 +54,27 @@ namespace FakeLivingComments
 				RealtimeComments.Capacity = ConfigHolder.ConfigData.CommentMaxCount;
 				SendANewComment("加载配置文件时发生问题，配置文件内容未空或读取错误");
 			}
-			if (ConfigHolder.SaveToFile())
-			{
-				ReserveANewComment("已写入配置文件", Time.time + 1f);
-			}
-			else
-			{
-				ReserveANewComment("写入配置文件时发生问题", Time.time + 1f);
-			}
+			if (ConfigHolder.SaveToFile()) ReserveANewComment("已写入配置文件", Time.time + 1f);
+			else ReserveANewComment("写入配置文件时发生问题", Time.time + 1f);
 			CreateUI();
 			SignalTriggerHandler.Load();
-			ReserveANewComment("加载流程完毕", Time.time + 4f);
+			LoadResult loadResult = FactoryManager.LoadData();
+			switch (loadResult)
+			{
+				case LoadResult.NO_DATA:
+					ReserveANewComment("未找到可供加载的弹幕内容数据，除非装有专门的外部模组直接调用本模组，否则本模组可能不会出现任何弹幕", Time.time + 2f);
+					break;
+				case LoadResult.SUCCESS_PARTLY:
+					ReserveANewComment("部分弹幕内容数据加载失败，可从游戏日志中查看详细错误信息", Time.time + 2f);
+					break;
+				case LoadResult.SUCCESS_ALL:
+					ReserveANewComment("所有弹幕内容数据均加载成功", Time.time + 2f);
+					break;
+				case LoadResult.FAILURE_ALL:
+					ReserveANewComment("所有弹幕内容数据均加载失败，可从游戏日志中查看详细错误信息", Time.time + 2f);
+					break;
+			}
+			ReserveANewComment("全部加载流程完毕", Time.time + 4f);
 		}
 		/// <summary>
 		/// 取消加载本mod
@@ -73,6 +83,7 @@ namespace FakeLivingComments
 		{
 			DestroyUI();
 			SignalTriggerHandler.Unload();
+			FactoryManager.FactoryPipelineStop();
 			HarmonyInstance.UnpatchAll(MOD_NAME);
 		}
 		public static void Update()
@@ -82,24 +93,15 @@ namespace FakeLivingComments
 			{
 				RealtimeComment thisRealtimeComment = RealtimeComments[i];
 				thisRealtimeComment.Update();
-				if (!thisRealtimeComment.IsAlive)
-				{
-					RealtimeComments.RemoveAt(i);
-				}
+				if (!thisRealtimeComment.IsAlive) RealtimeComments.RemoveAt(i);
 			}
 			// 新弹幕对象发送
 			for (int tryCounter = RealtimeCommentReserves.Count; tryCounter > 0; tryCounter--)
 			{
 				if (RealtimeCommentReserves.TryDequeue(out RealtimeCommentReserve commentReserve))
 				{
-					if (Time.time >= commentReserve.SendTime)
-					{
-						SendANewComment(commentReserve.Text);
-					}
-					else
-					{
-						RealtimeCommentReserves.Enqueue(commentReserve);
-					}
+					if (Time.time >= commentReserve.SendTime) SendANewComment(commentReserve.Text);
+					else RealtimeCommentReserves.Enqueue(commentReserve);
 				}
 			}
 		}
@@ -111,10 +113,7 @@ namespace FakeLivingComments
 		/// <returns>弹幕是否成功添加到预备</returns>
 		public static bool ReserveANewComment(string text, float sendTime)
 		{
-			if (RealtimeCommentReserves.Count >= ConfigHolder.ConfigData.ReserveMaxCount)
-			{
-				return false;
-			}
+			if (RealtimeCommentReserves.Count >= ConfigHolder.ConfigData.ReserveMaxCount) return false;
 			RealtimeCommentReserves.Enqueue(new RealtimeCommentReserve(text, sendTime));
 			return true;
 		}
@@ -125,10 +124,7 @@ namespace FakeLivingComments
 		/// <returns>弹幕是否成功发送</returns>
 		public static bool SendANewComment(string text)
 		{
-			if (RealtimeComments.Count >= ConfigHolder.ConfigData.CommentMaxCount || UITransform == null)
-			{
-				return false;
-			}
+			if (RealtimeComments.Count >= ConfigHolder.ConfigData.CommentMaxCount || UITransform == null) return false;
 			RealtimeComments.Add(new RealtimeComment(text, UITransform));
 			return true;
 		}
@@ -137,10 +133,7 @@ namespace FakeLivingComments
 		/// </summary>
 		public static void CreateUI()
 		{
-			if (UITransform != null)
-			{
-				return;
-			}
+			if (UITransform != null) return;
 			GameObject uiGameObject = new GameObject("FakeLivingCommentsUI")
 			{
 				layer = LayerMask.NameToLayer("UI")
@@ -157,10 +150,7 @@ namespace FakeLivingComments
 		/// </summary>
 		public static void DestroyUI()
 		{
-			if (UITransform == null)
-			{
-				return;
-			}
+			if (UITransform == null) return;
 			Object.Destroy(UITransform.gameObject);
 		}
 	}
