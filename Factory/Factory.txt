@@ -14,7 +14,7 @@
 数据包：
 本mod将在包括自身在内的所有mod文件夹中搜寻flc_data.json并将内容读取出来后合并到一起。完成读取阶段以后会实例化所有节点，并使触发器锚定侦听目标。
 
-flc_data.json格式：
+flc_data.json格式：{}表示Json对象、<>表示该键是可自行指定名称的动态键、~表示该处的动态键是允许存在任意数量的、[]表示Json数组、*表示该键是可选的
 {} 根标签
 	{} triggers 触发器数据表
 		~{} <触发器UID> 一个触发器数据
@@ -69,7 +69,7 @@ slt <selector> [rdm <min> <max>]
 	调用抽取器，select为抽选器UID，如果带有rdm子命令，则后续可指定调用抽选器的次数，min为随机最小次数，max为随机最大次数
 if <cmd> [<...>]
 	如果判断，cmd处可以为rdb、call
-	if cmd rdb <chance>
+	if rdb <chance>
 		chance填写一个表示百分比的数字，范围为0-1，指代有多少概率通过
-	if cmd call <method>
+	if call <method>
 		method填写一个格式类似为"Namespace.Class.Method"的无参public方法，方法必须返回bool，且需能够在工厂线程上运行，若方法耗时可能导致阻塞工厂线程

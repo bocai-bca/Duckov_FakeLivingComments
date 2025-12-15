@@ -23,10 +23,11 @@ namespace FakeLivingComments.Factory
 		/// <returns>修饰后的文本</returns>
 		public string ExecuteModifier(string theText)
 		{
+			string result = theText;
 			// 重复修饰器
 			for (int repeatRandomized = Random.Range(Repeat[0], Repeat[1] + 1); repeatRandomized > 0; repeatRandomized--)
 			{
-				theText += theText;
+				result += theText;
 			}
 			// 错别字修饰器
 			foreach (Modifier_Misspell misspell in Misspells) // 遍历所有错别字修饰器
@@ -55,18 +56,18 @@ namespace FakeLivingComments.Factory
 					boolMap[boolMapIndex] = target; // 替换
 					boolMap[targetIndex] = source; // 替换
 				}
-				theText = splitted[0];
+				result = splitted[0];
 				for (int index = 0; index < boolMap.Count; index++) // 拼接分段后的文本
 				{
 					if (boolMap[index])
 					{
-						theText += misspell.To + splitted[index + 1]; // 拼接错别字
+						result += misspell.To + splitted[index + 1]; // 拼接错别字
 						continue;
 					}
-					theText += misspell.From + splitted[index + 1]; // 拼接原始文本
+					result += misspell.From + splitted[index + 1]; // 拼接原始文本
 				}
 			}
-			return theText;
+			return result;
 		}
 	}
 	/// <summary>

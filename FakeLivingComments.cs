@@ -104,6 +104,7 @@ namespace FakeLivingComments
 					else RealtimeCommentReserves.Enqueue(commentReserve);
 				}
 			}
+			SignalTriggerHandler.Update();
 		}
 		/// <summary>
 		/// 添加一条预备弹幕，不可在调试时手动调用。可能因当前存在的预备弹幕数量达到上限而被丢弃，届时本方法会返回false
@@ -152,6 +153,15 @@ namespace FakeLivingComments
 		{
 			if (UITransform == null) return;
 			Object.Destroy(UITransform.gameObject);
+		}
+		/// <summary>
+		/// 弹幕高度提供器
+		/// </summary>
+		/// <returns>可直接用作Y坐标的高度值</returns>
+		public static float RealtimeCommentHeightProvider()
+		{
+			// 暂时的实现方案，以后需要重写。目前的实现方案是在屏幕划定范围内随机一个高度生成，这会导致弹幕之间没有网格感，后续还要试着实现避免弹幕出现在上一个位置的解决方法
+			return Random.Range(ConfigHolder.ConfigData.CommentLowestHeight * Screen.height, Screen.height - ConfigHolder.ConfigData.CommentFontSizeMulti / 2f);
 		}
 	}
 }

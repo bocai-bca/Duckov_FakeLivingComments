@@ -1,0 +1,145 @@
+{
+	"triggers": {
+		"playerKillMooks": {
+			"type": "Signal",
+			"class_name": "",
+			"target": "OnPlayerKillMooks"
+		},
+		"playerKillBoss": {
+			"type": "Signal",
+			"class_name": "",
+			"target": "OnPlayerKillBoss"
+		},
+		"playDeathByBoss": {
+			"type": "Signal",
+			"class_name": "",
+			"target": "OnPlayerDeathByBoss"
+		},
+		"playDeathByMooks": {
+			"type": "Signal",
+			"class_name": "",
+			"target": "OnPlayerDeathByMooks"
+		},
+		"playerHealthLow": {
+			"type": "Signal",
+			"class_name": "",
+			"target": "TickPlayerHealthLow"
+		}
+	},
+	"filters": {
+		"laugh": {
+			"scribe_triggers": ["playerDeathByMooks", "playerDeathByBoss"],
+			"commands": [
+				"slt haha rdm 5 9"
+			]
+		},
+		"maqiang": {
+			"scribe_triggers": ["test_OnShoot"],
+			"commands": ["slt maqiang rdm 1 4"]
+		},
+		"lowHealth": {
+			"scribe_triggers": ["playerHealthLow"],
+			"commands": [
+				"if rdb 0.06",
+				"ret else",
+				"slt lowHealth rdm 0 2"
+			]
+		}
+	},
+	"selectors": {
+		"haha": {
+			"rolls": 4,
+			"pool": [
+				{"weight": 5, "generators": ["haha"]},
+				{"weight": 4, "generators": ["xiaosi", "nanbeng"]},
+				{"weight": 2, "generators": ["cao"]},
+				{"weight": 1, "generators": ["youmo"]}
+			]
+		},
+		"maqiang": {
+			"rolls": 2,
+			"pool": [
+				{"weight": 3, "generators": ["haha", "xiaosi"]},
+				{"weight": 5, "generators": ["wenhao_single"]},
+				{"weight": 3, "generators": ["haoma", "cao"]},
+				{"weight": 1, "generators": ["youmo", "single"]}
+			]
+		},
+		"lowHealth": {
+			
+		}
+	},
+	"generators": {
+		"haha": {
+			"type": "Normal",
+			"source": "哈",
+			"modifiers": {
+				"repeat": [2, 10]
+			},
+			"delay": [1.2, 4.0]
+		},
+		"xiaosi": {
+			"type": "Normal",
+			"source": "笑死",
+			"modifiers": {
+				"misspells": [
+					{
+						"from": "死",
+						"to": "不活了",
+						"min_change_rate": 0.0,
+						"max_change_rate": 0.75
+					}
+				]
+			},
+			"delay": [1.3, 3.0]
+		},
+		"nanbeng": {
+			"type": "Normal",
+			"source": "难绷",
+			"modifiers": {
+				"misspells": [
+					{
+						"from": "绷",
+						"to": "蚌",
+						"min_change_rate": 0.0,
+						"max_change_rate": 1.1
+					}
+				]
+			},
+			"delay": [1.5, 4.0]
+		},
+		"cao": {
+			"type": "Normal",
+			"source": "草",
+			"modifiers": {},
+			"delay": [1.3, 4.0]
+		},
+		"wenhao": {
+			"type": "Normal",
+			"source": "?",
+			"modifiers": {
+				"repeat": [1, 7]
+			},
+			"delay": [1.6, 5.0]
+		},
+		"wenhao_single": {
+			"type": "Normal",
+			"source": "?",
+			"modifiers": {
+			},
+			"delay": [1.6, 5.0]
+		},
+		"haoma": {
+			"type": "Normal",
+			"source": "好马",
+			"modifiers": {},
+			"delay": [1.8, 4.0]
+		},
+		"youmo": {
+			"type": "Normal",
+			"source": "幽默",
+			"modifiers": {},
+			"delay": [1.8, 3.0]
+		}
+	}
+}

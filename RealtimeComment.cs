@@ -66,7 +66,6 @@ namespace FakeLivingComments
 				}
 			}
 		}
-
 		/// <summary>
 		/// 构造一个弹幕类并创建新的GameObject
 		/// </summary>
@@ -82,7 +81,7 @@ namespace FakeLivingComments
 			RectTransform rectTransform = CommentGameObject.AddComponent<RectTransform>();
 			rectTransform.SetParent(parent);
 			CommentGameObject.hideFlags = HideFlags.HideAndDontSave;
-			rectTransform.position = new Vector3(Screen.width * 2f, Random.Range(configStruct.CommentLowestHeight * Screen.height, Screen.height - configStruct.CommentFontSizeMulti / 2f));
+			rectTransform.position = new Vector3(Screen.width * 2f, FakeLivingComments.RealtimeCommentHeightProvider());
 			_canvasRenderer = CommentGameObject.AddComponent<CanvasRenderer>();
 			_text = CommentGameObject.AddComponent<TextMeshProUGUI>();
 			_text.text = commentText;

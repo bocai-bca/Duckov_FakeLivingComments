@@ -117,14 +117,22 @@ namespace FakeLivingComments
 		{
 			try
 			{
-				if (FactoryDataLoaded == null || FactoryPipelineThread == null) return;
+				if (FactoryDataLoaded == null) return;
+				if (FactoryPipelineThread == null)
+				{
+					FactoryPipelineStart();
+				}
 				if (SignalToFilters.TryGetValue(signal, out List<string>? filterUIDs))
 				{
 					foreach (string filterUID in filterUIDs)
 					{
 						if (FactoryDataLoaded.Filters.TryGetValue(filterUID, out Filter? filter)) factoryFilterTaskQueue.Enqueue(filter);
 					}
-					if (!FactoryPipelineThread.IsAlive) FactoryPipelineStart();
+					if (FactoryPipelineThread != null && !FactoryPipelineThread.IsAlive)
+					{
+						FactoryPipelineStop();
+						FactoryPipelineStart();
+					}
 				}
 			}
 			catch (Exception e)
@@ -139,7 +147,7 @@ namespace FakeLivingComments
 		{
 			if (FactoryPipelineThread is { IsAlive: true })
 			{
-				Debug.LogError("工厂线程已在运作，无法重复启动工厂管线");
+				Debug.LogError("工厂管线工作线程已在运作，无法重复启动");
 				return;
 			}
 			FactoryPipelineThread = new Thread(FactoryPipelineLoop)
@@ -148,6 +156,7 @@ namespace FakeLivingComments
 				Name = "FakeLivingComments.FactoryPipelineThread"
 			};
 			FactoryPipelineThread.Start();
+			Debug.Log("已启动工厂管线工作线程");
 		}
 		/// <summary>
 		/// 工厂管线工作流程
@@ -166,6 +175,7 @@ namespace FakeLivingComments
 		/// </summary>
 		internal static void FactoryPipelineStop()
 		{
+			Debug.Log("正在停止工厂管线工作线程");
 			if (!(FactoryPipelineThread is { IsAlive: true })) return;
 			if (!FactoryPipelineThread.Join(10000))
 			{
